@@ -1,0 +1,101 @@
+server {
+	server_name  devops1.aopstest.com www.devops1.aopstest.com;
+
+	listen 80;
+
+	# 301 is a notification of a permanent re-direct.
+	return 301 https://$server_name$request_uri;
+}
+
+server {
+	proxy_buffer_size   128k;
+	proxy_buffers   4 256k;
+	proxy_busy_buffers_size   256k;
+	proxy_set_header X-Scheme $scheme;
+	server_name  devops1.aopstest.com www.devops1.aopstest.com;
+
+	# SSL default settings.
+	include /etc/nginx/includes/ssl_settings.conf;
+
+	# ACME challenge
+	include /etc/nginx/includes/acme.conf;
+
+	location / {
+
+	# index index.php;
+
+	if ($is_bot) {
+		return 410;
+	}
+
+	root /var/www/aops3;
+	if (-f $request_filename) {
+			access_log off;
+			expires 30d;
+			break;
+	}
+
+	proxy_set_header X-Real-IP $remote_addr;
+	proxy_set_header X-Forwarded-For $remote_addr;
+	proxy_set_header Host $http_host;
+	proxy_set_header X-Scheme $scheme;
+
+	# To Do -- Fix this to the NGINX method of checking files.
+	if (!-f $request_filename) {
+		proxy_pass http://apache;
+		break;
+	}
+}
+
+	location ~ /\.(?!well-known).* {
+		deny all;
+		access_log off;
+		log_not_found off;
+	}
+
+	# Proxy /news to blog
+	include includes/news.conf;
+
+	# Proxy data
+	location ~* ^/data/(.*) {
+		resolver 8.8.8.8;
+		proxy_pass http://data.devops1.aopstest.com/$1$is_args$args;
+		break;
+	}
+
+
+	# proxy the PHP scripts to Apache listening on 127.0.0.1:82
+	# Also proxy .md, .html, and .txt cuz we want those logged
+	# to access.log and we want user authentication on those files
+	location ~ \.(php|md|html|txt)$ {
+		if ($is_bot) {
+			return 410;
+		}
+
+		proxy_set_header Host                $http_host;
+	    proxy_set_header X-Real-IP           $remote_addr;
+	    proxy_set_header X-Forwarded-For     $proxy_add_x_forwarded_for;
+	    proxy_set_header X-Forwarded-Proto   $scheme;
+
+		proxy_pass http://apache;  # Anubis endpoint
+    }
+
+	# Fonts need access control allow origin
+	location ~*\.(eot|ttf|woff|woff2)$ {
+		add_header Access-Control-Allow-Origin *;
+		root /var/www/aops3;
+		expires 1d;
+		break;
+	}
+
+	include includes/deny.conf;
+
+	location = /basic_status {
+		stub_status;
+		allow 50.203.25.222;
+		allow 143.110.228.66;
+		deny all;
+	}
+}
+
+

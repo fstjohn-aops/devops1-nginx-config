@@ -1,0 +1,36 @@
+## Keep up to date with latest config: https://ssl-config.mozilla.org/
+# Order and notes are kept in here as to why we are using certain settings.
+
+listen 443 ssl;
+listen [::]:443 ssl http2;
+
+# SSL Certs
+ssl_certificate /etc/letsencrypt/live/devops1.aopsacademy.club/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/devops1.aopsacademy.club/privkey.pem;
+
+ssl_session_timeout 1d;
+ssl_session_cache shared:le_nginx_SSL:10m;
+## Same as above more or less, keeping this way since that is what we were using.
+# ssl_session_cache shared:MozSSL:10m;  # about 40000 sessions
+ssl_session_tickets off;
+
+# Either generated via openssl or copied from the certbot one.
+ssl_dhparam /etc/ssl/certs/dhparam.pem;
+
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+# Attempts to force older clients to use a better cipher than their default.
+ssl_prefer_server_ciphers on;
+
+# HSTS (ngx_http_headers_module is required) (63072000 seconds)
+#add_header Strict-Transport-Security "max-age=63072000" always; ## Keep off for now, should use this in production though.
+
+# OCSP stapling
+#ssl_stapling on; ## Same thing, should be used in production where we aren't possibly rebuilding all the time.
+#ssl_stapling_verify on; ## Same thing, should be used in production where we aren't possibly rebuilding all the time.
+
+# verify chain of trust of OCSP response using Root CA and Intermediate certs
+ssl_trusted_certificate /etc/letsencrypt/live/devops1.aopsacademy.club/chain.pem;
+
+# replace with the IP address of your resolver, using CloudFlare since we use that elsewere.
+resolver 1.1.1.1;

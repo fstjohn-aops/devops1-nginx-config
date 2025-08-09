@@ -1,0 +1,68 @@
+user  website;
+worker_processes  1;
+
+# To Do: Break up access/error logs into per domain?
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+
+worker_rlimit_nofile 40000;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+    '$status $body_bytes_sent "$http_referer" '
+    '"$http_user_agent" "$http_x_forwarded_for"';
+
+    # To Do: Break up access/error logs into per domain?
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    # Set some AoPS settings
+    client_max_body_size        128M;
+    proxy_connect_timeout       1200;
+    proxy_send_timeout          1200;
+    proxy_read_timeout          1200;
+    send_timeout                1200;
+    proxy_buffer_size           128k;
+    proxy_buffers               4 256k;
+    proxy_busy_buffers_size     256k;
+
+    ####
+    # Setup our available proxy locations. These are NOT available publicly.
+    #
+    # Should re-name this one?
+    upstream apache {
+    	server localhost:82;
+    }
+    # For academy connections (do we really need both? Testing needed.).
+    upstream academy {
+        server localhost:82;
+    }
+    #
+    ####
+
+    # Take care of some bot related stuff
+    map $http_user_agent $is_bot {
+        default 0;
+
+        ~*(crawl|Googlebot|Slurp|spider|bingbot|tracker|click|parser|spider|bot) 1;
+
+        #access_log off;
+    }
+
+    # Process our server config files
+    include /etc/nginx/conf.d/*.conf;
+}
