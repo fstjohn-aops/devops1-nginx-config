@@ -1,0 +1,33 @@
+# NGINX Configuration Overview
+
+This directory contains all configuration for the NGINX web server. The goal is to keep things organized, consistent, and easy to maintain.
+
+## Directory Structure
+
+- **nginx.conf**: Main NGINX config. Loads global settings and includes all site/service configs from `conf.d/`.
+- **conf.d/**: Site and service-specific configs. Each file should be named after the domain or service it configures.
+- **includes/**: Reusable config snippets (SSL, PHP, ACME, deny rules, etc). Only logic that is shared across multiple sites/services should go here.
+- **modules/**: (If present) NGINX dynamic modules.
+- **default.d/**: Default config overrides (rarely used).
+- **mime.types, fastcgi_params, scgi_params, uwsgi_params**: Standard NGINX config files for MIME types and upstream protocols.
+
+## Best Practices
+
+- **Upstreams**: Define all `upstream` blocks in a single file (e.g., `conf.d/upstreams.conf`) or in the main `nginx.conf` for clarity.
+- **Includes**: Use includes for any logic shared by more than one site/service (SSL, PHP, ACME, deny rules, etc).
+- **Site Configs**: Each domain or service should have its own config file in `conf.d/`, named clearly (e.g., `example.com.conf`).
+- **Consistency**: Use the same structure/order for all site configs. Start with HTTP->HTTPS redirect, then the main HTTPS block.
+- **Backups/Old Files**: Do not keep old or backup configs in the main config directories. Use git for history.
+- **Documentation**: Update this README if you add new includes, change structure, or add new conventions.
+
+## Quick Reference
+
+- To add a new site: Copy an existing config in `conf.d/`, update server_name/root/proxy, and reload NGINX.
+- To update SSL settings: Edit `includes/ssl_settings.conf`.
+- To change PHP handling: Edit `includes/php.conf` and the relevant upstream in `conf.d/upstreams.conf`.
+- To block/allow files or folders: Edit `includes/deny.conf`.
+- For ACME/Let's Encrypt: Edit `includes/acme.conf`.
+
+---
+
+For more details, see comments in each config file. Keep things DRY and simple! 
